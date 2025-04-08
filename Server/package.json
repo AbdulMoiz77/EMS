@@ -1,0 +1,16 @@
+{
+  "name": "envmonitor",
+  "version": "1.0.0",
+  "description": "Air Quality Monitoring System",
+  "license": "ISC",
+  "author": "Abdul Moiz",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "mysql2": "^3.14.0"
+  }
+}
