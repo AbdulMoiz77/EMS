@@ -3,12 +3,9 @@
 #include <DHT.h>
 #include "time.h"
 
-#define WIFI_SSID "ssid"
-#define WIFI_PASSWORD "pass"
+#include "secrets.h"
 
 DHT dht(13, DHT11);
-
-String URL = "http://computer_ip:5000/data";
 
 struct SensorData {
   float temperature;
@@ -32,8 +29,8 @@ void loop() {
   }
 
   SensorData readings = getReadings();
-  Serial.println("Avg Temperature " + String(readings.temperature));
-  Serial.println("Avg Humidity " + String(readings.humidity));
+  Serial.println("Temperature " + String(readings.temperature));
+  Serial.println("Humidity " + String(readings.humidity));
 
   struct tm timeinfo;
   String formattedTime = "";

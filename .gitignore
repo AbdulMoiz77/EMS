@@ -1,3 +1,5 @@
 air-quality-monitoring-system
 node_modules
 Database
+.env
+secrets.h
