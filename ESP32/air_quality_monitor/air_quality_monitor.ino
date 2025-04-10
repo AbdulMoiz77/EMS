@@ -41,6 +41,8 @@ void loop() {
   }
 
   delay(1000);
+
+  RequestAgain:
   HTTPClient http;
   http.begin(URL);
   http.addHeader("Content-Type","application/json");
@@ -50,6 +52,11 @@ void loop() {
   int responseCode = http.POST(Data);
 
   String payload = http.getString();
+
+  if(responseCode == -1){
+    Serial.println("Request Failed. Trying Again...");
+    goto RequestAgain;
+  }
 
   Serial.println("URL: "+ URL);
   Serial.println("Data: "+ Data);
