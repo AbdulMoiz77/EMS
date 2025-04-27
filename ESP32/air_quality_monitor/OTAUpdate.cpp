@@ -48,42 +48,48 @@ void updateFirmware() {
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); 
 
     int responseCode = http.GET();
+
+    Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Starting OTA update");
     if(responseCode == HTTP_CODE_OK){
         int length = http.getSize();
         bool beginUpdate = Update.begin(length);
 
         if(beginUpdate){
+            Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Writing firmware...");
             Serial.println("Starting Firmware Update");
             WiFiClient *stream = http.getStreamPtr();
             size_t written = Update.writeStream(*stream);
 
             if(written == length){
+                Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Firmware written successfully");
                 Serial.println("Firmware written successfully");
             }else {
                 Serial.println("Writen only " + String(written) + "/" + String(length) + " bytes");
+                Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Partial write: " + String(written) + "/" + String(length));
             }
 
             if(Update.end()){
                 if(Update.isFinished()){
+                    Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Update complete, rebooting");
                     Serial.println("Update Completed. Rebooting.....");
                     Firebase.RTDB.setBool(&fbdo, "/Firmware/update", false);
                     delay(200);
                     ESP.restart();
                 }else{
                     Serial.println("Update not finished");
+                    Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Update not finished");
                 }
             }else{
                 Serial.printf("Error in Update: %s\n",  Update.errorString());
-                Serial.println("Restarting...");
-                updateFirmware();
+                Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Error: " + String(Update.errorString()));
             }
         }else{
             Serial.println("Not enough space");
+            Firebase.RTDB.setString(&fbdo, "/Firmware/status", "Not enough space for update");
         }
     }else{
         Serial.println("HTTP error" + String(responseCode));
-        Serial.println("Retrying...");
-        updateFirmware();
+        Firebase.RTDB.setString(&fbdo, "/Firmware/status", "HTTP error: " + String(responseCode));
     }
     otaInProgress = false;
 }

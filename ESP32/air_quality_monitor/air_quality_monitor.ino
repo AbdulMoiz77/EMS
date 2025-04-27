@@ -76,7 +76,7 @@ void pushData(){
         formattedTime = String(time);
     }
     
-    Serial.println("Timestamp: " + formattedTime);
+    Serial.println("\nTimestamp: " + formattedTime);
     String node = "Sensor/" + formattedTime;
 
     resendTemperature:
