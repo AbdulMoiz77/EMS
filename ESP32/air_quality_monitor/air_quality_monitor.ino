@@ -80,24 +80,30 @@ void pushData(){
     String node = "Sensor/" + formattedTime;
 
     resendTemperature:
-    if(Firebase.RTDB.setFloat(&fbdo, node + "/Temperature", Temperature)){
-        Serial.println();
-        Serial.println("Temperature: " + String(Temperature));
-        Serial.print("- successfully saved to " + fbdo.dataPath());
-        Serial.println( "(" + fbdo.dataType() + ") " );
-    }else{
-        Serial.println("Failed: " + fbdo.errorReason());
-        goto resendTemperature;
+    if(Firebase.ready()){
+        if(Firebase.RTDB.setFloat(&fbdo, node + "/Temperature", Temperature)){
+            Serial.println();
+            Serial.println("Temperature: " + String(Temperature));
+            Serial.print("- successfully saved to " + fbdo.dataPath());
+            Serial.println( "(" + fbdo.dataType() + ") " );
+        }else{
+            Serial.println("Failed: " + fbdo.errorReason());
+            goto resendTemperature;
+        }
     }
 
+
     resendHumidity:
-    if(Firebase.RTDB.setFloat(&fbdo, node + "/Humidity", Humidity)){
-        Serial.println();
-        Serial.println("Humidity: " + String(Humidity));
-        Serial.print("- successfully saved to " + fbdo.dataPath());
-        Serial.println( "(" + fbdo.dataType() + ") " );
-    }else{
-        Serial.println("Failed: " + fbdo.errorReason());
-        goto resendHumidity;
+    if(Firebase.ready()){
+        if(Firebase.RTDB.setFloat(&fbdo, node + "/Humidity", Humidity)){
+            Serial.println();
+            Serial.println("Humidity: " + String(Humidity));
+            Serial.print("- successfully saved to " + fbdo.dataPath());
+            Serial.println( "(" + fbdo.dataType() + ") " );
+        }else{
+            Serial.println("Failed: " + fbdo.errorReason());
+            goto resendHumidity;
+        }
     }
+
 }
