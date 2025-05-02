@@ -4,3 +4,5 @@ secrets.h
 build
 firebase
 config.ts
+update.py
+creds.json
