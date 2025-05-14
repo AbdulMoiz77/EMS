@@ -7,6 +7,6 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    allowedHosts: ['appraisal-animation-interests-mph.trycloudflare.com']
+    allowedHosts: ['instructional-australian-try-ecuador.trycloudflare.com']
   }
 });

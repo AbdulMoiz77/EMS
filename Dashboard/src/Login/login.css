@@ -1,0 +1,109 @@
+@import url("https://fonts.googleapis.com/css?family=Poppins");
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins',sans-serif;
+}
+
+.login-page{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: url('/bg.jpg') no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+
+.wrapper{
+    width: 420px;
+    background: transparent;
+    border: 2px solid rgb(255, 255, 255,0.2);
+    backdrop-filter: blur(10px);
+    color: #ebf2f1;
+    border-radius: 12px;
+    padding: 30px 40px;
+}
+
+.wrapper h1{
+    font-size: 36px;
+    text-align: center;
+}
+
+.wrapper .input-box{
+    position: relative;
+    width: 100%;
+    height: 50px;
+    margin: 30px 0;
+
+}
+.wrapper .input-box.shake{
+    animation: shake 0.3s ease-in-out;
+}
+@keyframes shake {
+    0%, 100%{
+        margin-left: 0;
+    }
+    20%, 80%{
+        margin-left: -12px;
+    }
+    40%, 60%{
+        margin-left: 12px;
+    }
+}
+
+.input-box input{
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    outline: none;
+    border: 2px solid rgb(255, 255, 255,0.2);
+    border-radius: 40px;
+    font-size: 16px;
+    color: #ebf2f1;
+    padding: 20px 45px 20px 20px;
+}
+
+.input-box input::placeholder{
+    color: #ebf2f1;
+}
+
+.input-box i{
+    position: absolute;
+    right: 20px;
+    top: 30%;
+    transform: translate(-50%);
+    font-size: 20px;
+}
+
+.wrapper .btn{
+    width: 100%;
+    height: 45px;
+    background: #ebf2f1;
+    border: none;
+    outline: none;
+    border-radius: 40px;
+    box-shadow: 0 0 10px rgb(0, 0, 0, 0.1);
+    cursor: pointer;
+    font-size: 16px;
+    color: #194759;
+    font-weight: 600;
+}
+
+.wrapper .btn:hover{
+    border: 2px solid #194759;
+}
+
+.error-icon{
+    color: red;
+}
+.error-txt{
+    display: flex;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px;
+    color: red;
+    
+}

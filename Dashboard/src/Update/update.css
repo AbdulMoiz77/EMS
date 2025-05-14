@@ -1,0 +1,135 @@
+@import url("https://fonts.googleapis.com/css?family=Poppins");
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins',sans-serif;
+}
+
+.file-wrapper {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 60px;
+  position: relative;
+  background: url('/background.jpg') no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+.home-button {
+  position: absolute;
+  top: 35px;
+  left: 35px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.home-icon {
+  width: 30px;
+  height: 30px;
+}
+
+
+.dropzone {
+  width: 60%;
+  height: 250px;
+  background: transparent;
+  outline: 3px solid rgb(255, 255, 255,0.2);
+  backdrop-filter: blur(10px);
+  color: #ebf2f1;
+  border-radius: 12px;
+  padding: 30px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin-top: 80px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.dropzone:hover , .fileSelected {
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.8);
+  -color: rgba(255, 255, 255, 0.5);
+}
+
+.dropzone span{
+    font-size: 18px;
+    font-weight: 600;
+    font-family: 'Poppins',sans-serif;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 10px;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #de0611;
+}
+
+
+.submit-button {
+    width: 250px;
+    height: 45px;
+    background: #ebf2f1;
+    border: none;
+    outline: none;
+    border-radius: 40px;
+    box-shadow: 0 0 10px rgb(0, 0, 0, 0.1);
+    cursor: pointer;
+    font-size: 18px;
+    color: #194759;
+    font-weight: 600;
+}
+
+.submit-button:hover {
+  background-color: #194759;
+  color: #ebf2f1;
+  transform: scale(1.05);
+}
+
+.status {
+  margin-top: 40px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #ebf2f1;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 15px 30px;
+  border-radius: 12px;
+  width: 60%;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+.status:empty {
+  display: none;
+}
+
+.status.success {
+  background-color: #2d9e57;
+}
+
+.status.error {
+  background-color: #de0611;
+}
+
+.status.info {
+  background-color: #194759;
+}
+
+.status.warning {
+  background-color: #f4c542;
+}
+

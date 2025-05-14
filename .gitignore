@@ -6,3 +6,5 @@ firebase
 config.ts
 update.py
 creds.json
+build/
+.env
