@@ -8,3 +8,6 @@ update.py
 creds.json
 build/
 .env
+credentials.json
+Upload
+uploads

@@ -80,7 +80,7 @@
 }
 
 
-.submit-button {
+.submit-button, .update-button {
     width: 250px;
     height: 45px;
     background: #ebf2f1;
@@ -94,7 +94,7 @@
     font-weight: 600;
 }
 
-.submit-button:hover {
+.submit-button:hover, .update-button:hover {
   background-color: #194759;
   color: #ebf2f1;
   transform: scale(1.05);

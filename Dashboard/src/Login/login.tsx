@@ -17,22 +17,29 @@ function Login() {
         const id = idRef.current.value;
         const pass = passRef.current.value;
 
-        if(id == import.meta.env.VITE_APP_ADMIN_USER && pass == import.meta.env.VITE_APP_ADMIN_PASS ){
-            navigate("/update", {state: {flag: true}});
-        }else{
-            setShake(true);
-            setShowError(true);
-            seticons(false);
+        fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, pass }),
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            if(data.result){
+                navigate("/update", {state: {flag: true}});
+            }else{
+                setShake(true);
+                setShowError(true);
+                seticons(false);
     
-            setTimeout(() => {
-                setShowError(false)
-                setShake(false);
-                seticons(true)
-                idRef.current.value = ''
-                passRef.current.value = ''
-            }, 3000);
-        }
-
+                setTimeout(() => {
+                    setShowError(false)
+                    setShake(false);
+                    seticons(true)
+                    idRef.current.value = ''
+                    passRef.current.value = ''
+                }, 3000);
+            }
+        })
     };
 
 

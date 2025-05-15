@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NavLink } from "react-router-dom";
 import { Typography } from '@mui/material';
+import { database } from '../firebase/config';
+import { ref, set, get, onValue } from 'firebase/database';
 import "./update.css";
 
 function Update(){
@@ -13,11 +15,11 @@ function Update(){
   const [file, setFile] = useState(null);
   const [fileSelected, setFileSelected] = useState(false);
   const [status, setStatus] = useState("No action taken");
+  const [uploaded, setUploaded] = useState(false);
+  const [deleteShow, setDeleteShow] = useState(true);
 
   useEffect(() => {
-    console.log(hasAlerted, flag);
     if (!flag && !hasAlerted.current) {
-      console.log("Here");
       alert('Please login first.')
       hasAlerted.current = true;
       navigate('/login');
@@ -60,13 +62,97 @@ function Update(){
     fileRef.current.value = '';
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (file) {
-      setStatus('Update Completed');
+      setStatus('Uploading to drive');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/uploadToDrive', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      if(result.success){
+        setStatus('Upload complete');
+        setUploaded(true);
+        setDeleteShow(false);
+      }
+
+
     } else {
       setStatus('No file selected');
     }
   };
+
+  const handleUpdate = async () => {
+  const updateRef = ref(database, 'Firmware/update');
+  const statusRef = ref(database, 'Firmware/status' );
+  let statusValue = ""
+
+  try {
+    const snapshot = await get(statusRef);
+    if(snapshot.exists()){
+      statusValue = snapshot.val();
+      console.log('Firmware status:', statusValue);
+    }
+
+    await set(updateRef, true);
+    setStatus('Changed the update flag');
+
+    const firmwareRef = ref(database, 'Firmware');
+
+    const intervalId = setInterval(async () => {
+      try {
+        const snapshot = await get(firmwareRef);
+        if (!snapshot.exists()) return;
+
+        const data = snapshot.val();
+
+        if ('status' in data) {
+          if(data.status != statusValue){
+            setStatus(data.status);
+          }
+        }
+
+        if ('update' in data && data.update === false) {
+
+          const snapshot = await get(statusRef);
+          if(snapshot.exists()){
+            const statusValue = snapshot.val();
+            console.log('Firmware status:', statusValue);
+          }
+
+          clearInterval(intervalId);
+          setTimeout(async () => {
+            const snapshot = await get(statusRef);
+            if(snapshot.exists()){
+              const statusValue = snapshot.val();
+              console.log('Firmware status:', statusValue);
+            }
+            setDeleteShow(true);
+            setUploaded(false);
+            setFile(null);
+            setFileSelected(false);
+            fileRef.current.value = '';
+            setStatus(statusValue);
+            setTimeout(() => {
+              setStatus("No action taken");
+            }, 5000);
+          }, 5000);
+        }
+      } catch (err) {
+        console.error('Error fetching firmware data:', err);
+        clearInterval(intervalId);
+      }
+    }, 5000);
+
+  } catch (err) {
+    console.error('Error setting firmware flag:', err);
+  }
+  }
 
   return (
     <div className="file-wrapper">
@@ -84,7 +170,7 @@ function Update(){
         {file ? (
           <div className="file-info">
             <span>{file.name}</span>
-            <button 
+            {deleteShow && <button 
               className="delete-button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -92,16 +178,20 @@ function Update(){
               }}
             >
               ✖
-            </button>
+            </button>}
           </div>
         ) : (
           <span>Drag and drop or browse .bin file</span>
         )}
       </div>
 
-      <button className="submit-button" onClick={handleSubmit}>
+      {!uploaded && <button className="submit-button" onClick={handleSubmit}>
         Submit
-      </button>
+      </button>}
+
+      {uploaded && <button className="update-button" onClick={handleUpdate}>
+        Start Update
+      </button>}
 
       <p className="status">Status: {status}</p>
     </div>

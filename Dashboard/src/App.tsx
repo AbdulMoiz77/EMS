@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from 'react';
 import {createBrowserRouter, RouterProvider } from "react-router-dom"
 import Interface from './Interface/interface.tsx';
 import Login from './Login/login.jsx';
