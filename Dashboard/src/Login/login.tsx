@@ -1,48 +1,59 @@
-import React, { FormEvent, useState, useRef } from 'react';
+import { FormEvent, useState, useRef } from 'react';
 import './login.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { signInAnonymously } from 'firebase/auth';
+import { auth } from '../firebase/config';
 
 function Login() {
     
-    const idRef = useRef();
-    const passRef = useRef();
+    const idRef = useRef<HTMLInputElement>(null);
+    const passRef = useRef<HTMLInputElement>(null);
     const [shake, setShake] = useState(false);
     const [icons, seticons]= useState(true);
     const [showError, setShowError] = useState(false);
     const navigate = useNavigate();
 
-    const submit = (e: FormEvent) => {
+    const submit = async (e: FormEvent) => {
         e.preventDefault();
+        if (!idRef.current || !passRef.current) return;
         
         const id = idRef.current.value;
         const pass = passRef.current.value;
 
-        fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, pass }),
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            if(data.result){
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, pass }),
+            });
+
+            const data = await response.json();
+
+            if (data.result) {
+                await signInAnonymously(auth);
                 navigate("/update", {state: {flag: true}});
-            }else{
-                setShake(true);
-                setShowError(true);
-                seticons(false);
-    
-                setTimeout(() => {
-                    setShowError(false)
-                    setShake(false);
-                    seticons(true)
-                    idRef.current.value = ''
-                    passRef.current.value = ''
-                }, 3000);
+            } else {
+                triggerError();
             }
-        })
+        } catch (error) {
+            console.error("Login Error:", error);
+            triggerError();
+        }
     };
+      
+    const triggerError = () => {
+        setShake(true);
+        setShowError(true);
+        seticons(false);
 
-
+        setTimeout(() => {
+            setShowError(false);
+            setShake(false);
+            seticons(true);
+            if (idRef.current) idRef.current.value = '';
+            if (passRef.current) passRef.current.value = '';
+        }, 3000);
+    };
 
     return (
         <div className="login-page">

@@ -13,7 +13,7 @@ const pass = process.env.ADMIN_PASS;
 
 const cors = require('cors');
 app.use(cors({
-  origin: 'https://painted-bg-selling-puts.trycloudflare.com ',
+  origin: 'http://localhost:5173/',
 }));
 
 app.use(express.json());

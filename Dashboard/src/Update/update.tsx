@@ -1,22 +1,23 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, ChangeEvent, DragEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NavLink } from "react-router-dom";
 import { Typography } from '@mui/material';
 import { database } from '../firebase/config';
-import { ref, set, get, onValue } from 'firebase/database';
+import { ref, set, get, onValue, Unsubscribe } from 'firebase/database';
 import "./update.css";
 
 function Update(){
   const navigate = useNavigate();
   const location = useLocation();
-  const {flag} = location.state || {flag: false};
+  const { flag } = (location.state as { flag: boolean }) || { flag: false };
   const hasAlerted = useRef(false);
-  const fileRef = useRef();
-  const [file, setFile] = useState(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [fileSelected, setFileSelected] = useState(false);
   const [status, setStatus] = useState("No action taken");
   const [uploaded, setUploaded] = useState(false);
   const [deleteShow, setDeleteShow] = useState(true);
+  const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
   useEffect(() => {
     if (!flag && !hasAlerted.current) {
@@ -24,15 +25,22 @@ function Update(){
       hasAlerted.current = true;
       navigate('/login');
     }
+
+    return () => {
+      if (unsubscribeRef.current) {
+        console.log("Cleaning up Firebase listener...");
+        unsubscribeRef.current();
+      }
+    };
   }, [flag, navigate]);
 
-  const isBinFile = (file) => {
+  const isBinFile = (file: File | null) => {
     return file && file.name.toLowerCase().endsWith('.bin');
   };
 
-  const handleFileSelect = (e) => {
-    const selectedFile = e.target.files[0];
-    if (isBinFile(selectedFile)) {
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files ? e.target.files[0] : null;
+    if (selectedFile && isBinFile(selectedFile)) {
       setFile(selectedFile);
       setFileSelected(true);
       setStatus(`${selectedFile.name} selected`);
@@ -42,7 +50,7 @@ function Update(){
     }
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
     if (isBinFile(droppedFile)) {
@@ -53,13 +61,15 @@ function Update(){
     }
   };
 
-  const handleDragOver = (e) => e.preventDefault();
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => e.preventDefault();
 
   const handleDelete = () => {
     setFile(null);
     setStatus('File removed');
     setFileSelected(false);
-    fileRef.current.value = '';
+    if (fileRef.current) {
+      fileRef.current.value = '';
+    }
   };
 
   const handleSubmit = async () => {
@@ -88,70 +98,56 @@ function Update(){
   };
 
   const handleUpdate = async () => {
-  const updateRef = ref(database, 'Firmware/update');
-  const statusRef = ref(database, 'Firmware/status' );
-  let statusValue = ""
-
-  try {
-    const snapshot = await get(statusRef);
-    if(snapshot.exists()){
-      statusValue = snapshot.val();
-      console.log('Firmware status:', statusValue);
-    }
-
-    await set(updateRef, true);
-    setStatus('Changed the update flag');
-
+    const updateRef = ref(database, 'Firmware/update');
     const firmwareRef = ref(database, 'Firmware');
+    const statusRef = ref(database, 'Firmware/status');
+    let initialStatus = "";
 
-    const intervalId = setInterval(async () => {
-      try {
-        const snapshot = await get(firmwareRef);
-        if (!snapshot.exists()) return;
+    try {
+      const snapshot = await get(statusRef);
+      initialStatus =   snapshot.exists() ? snapshot.val() : "";
 
+      await set(updateRef, true);
+      setStatus('Changed the update flag');
+
+      unsubscribeRef.current = onValue(firmwareRef, (snapshot) => {
+        if(!snapshot.exists()) return;
         const data = snapshot.val();
 
-        if ('status' in data) {
-          if(data.status != statusValue){
-            setStatus(data.status);
-          }
+        if (data.status && data.status !== initialStatus) {
+          setStatus(data.status);
         }
 
-        if ('update' in data && data.update === false) {
-
-          const snapshot = await get(statusRef);
-          if(snapshot.exists()){
-            const statusValue = snapshot.val();
-            console.log('Firmware status:', statusValue);
+        if (data.update === false) {
+          if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+            unsubscribeRef.current = null;
           }
 
-          clearInterval(intervalId);
-          setTimeout(async () => {
-            const snapshot = await get(statusRef);
-            if(snapshot.exists()){
-              const statusValue = snapshot.val();
-              console.log('Firmware status:', statusValue);
-            }
+          setTimeout(() => {
             setDeleteShow(true);
             setUploaded(false);
             setFile(null);
             setFileSelected(false);
-            fileRef.current.value = '';
-            setStatus(statusValue);
+            if (fileRef.current) fileRef.current.value = '';
+
+            setStatus(data.status || "Update Finished");
+
             setTimeout(() => {
               setStatus("No action taken");
             }, 5000);
           }, 5000);
         }
-      } catch (err) {
-        console.error('Error fetching firmware data:', err);
-        clearInterval(intervalId);
-      }
-    }, 5000);
-
-  } catch (err) {
-    console.error('Error setting firmware flag:', err);
-  }
+      }, (error) => {
+        console.error("Firebase listen error:", error);
+        setStatus("Error starting update");
+      });
+    
+    }
+      catch (err) {
+      console.error('Error setting firmware flag:', err);
+      setStatus("Error starting update");
+    }
   }
 
   return (
@@ -165,7 +161,7 @@ function Update(){
       <Typography variant="h4" gutterBottom   sx={{mr: 2, color: "#ebf2f1", fontFamily: "'Poppins', sans-serif", fontWeight: 'bold', fontSize: '2.5rem', letterSpacing: '2px' }}>
           Update Firmware OTA
       </Typography>
-      <div className={`dropzone ${fileSelected ? 'fileSelected': ''}`} onDrop={handleDrop} onDragOver={handleDragOver} onClick={() => fileRef.current.click()} >
+      <div className={`dropzone ${fileSelected ? 'fileSelected': ''}`} onDrop={handleDrop} onDragOver={handleDragOver} onClick={() => fileRef.current?.click()} >
         <input type="file" ref={fileRef} onChange={handleFileSelect} accept=".bin" style={{ display: 'none' }} />
         {file ? (
           <div className="file-info">
@@ -197,7 +193,5 @@ function Update(){
     </div>
   );
 }
+
 export default Update;
-
-
-

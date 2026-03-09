@@ -1,6 +1,6 @@
 import { database } from '../firebase/config';
 import { ref, onValue } from 'firebase/database';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import moment from 'moment';
 import "./interface.css"
 import {
@@ -39,30 +39,44 @@ type SensorData = {
 };
 
 function Interface() {
-  const now = moment();
-  const isSunrise = now.isBetween(moment().hour(5).minute(26), moment().hour(6).minute(26));
-  const isSunset = now.isBetween(moment().hour(18).minute(32), moment().hour(19).minute(32));
-  const isDay = now.isBetween(moment().hour(6).minute(26), moment().hour(18).minute(32));
-
-  let backgroundClass = '';
-  if (isSunrise) {
-    backgroundClass = 'sunrise-background';
-  } else if (isSunset) {
-    backgroundClass = 'sunset-background';
-  } else if (isDay) {
-    backgroundClass = 'day-background';
-  } else {
-    backgroundClass = 'night-background';
-  }
-
   const [data, setData] = useState<SensorData[]>([]);
   const [currentTime, setCurrentTime] = useState<string>(moment().format('YYYY-MM-DD HH:mm:ss'));
   const [loading, setLoading] = useState<boolean>(true);
 
+  const [sunriseTime, setSunriseTime] = useState<moment.Moment | null>(null);
+  const [sunsetTime, setSunsetTime] = useState<moment.Moment | null>(null);
+
+  useEffect(() => {
+    const lat = 24.9315;
+    const lng = 67.1148;
+    const url = `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&formatted=0`;
+
+    const fetchSunTimes = async () => {
+      try {
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.status === "OK") {
+          setSunriseTime(moment(result.results.sunrise));
+          setSunsetTime(moment(result.results.sunset));
+        }
+      } catch (error) {
+        console.error("Error fetching sunrise/sunset times:", error);
+      }
+    };
+
+    fetchSunTimes();
+
+    const interval = setInterval(fetchSunTimes, 24*60*60*1000);
+    return () => clearInterval(interval);
+  }, []);
+
+
   useEffect(() => {
     const sensorRef = ref(database, 'Sensor/');
-    onValue(sensorRef, (snapshot) => {
+    const unsubscribe = onValue(sensorRef, (snapshot) => {
       const rawData = snapshot.val();
+
       if (rawData) {
         const parsedData = Object.keys(rawData).map((key) => ({
           Timestamp: key,
@@ -72,7 +86,11 @@ function Interface() {
         setData(parsedData);
       }
       setLoading(false);
+    }, (error) => {
+      console.error("Firebase Error:", error);
+      setLoading(false);
     });
+      return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -82,7 +100,26 @@ function Interface() {
     return () => clearInterval(interval);
   }, []);
 
-  // const now = moment();
+  const now = moment();
+  let backgroundClass = 'night-background';
+
+  if (sunriseTime && sunsetTime) {    
+    const sunriseStart = sunriseTime.clone().subtract(30, 'minutes');
+    const sunriseEnd = sunriseTime.clone().add(30, 'minutes');
+    const sunsetStart = sunsetTime.clone().subtract(30, 'minutes');
+    const sunsetEnd = sunsetTime.clone().add(30, 'minutes');
+
+    if (now.isBetween(sunriseStart, sunriseEnd)) {
+      backgroundClass = 'sunrise-background';
+    } else if (now.isBetween(sunsetStart, sunsetEnd)) {
+      backgroundClass = 'sunset-background';
+    } else if (now.isBetween(sunriseEnd, sunsetStart)) {
+      backgroundClass = 'day-background';
+    } else {
+      backgroundClass = 'night-background';
+    }
+  } 
+
   const last24HoursData = data.filter((d) =>
     moment(d.Timestamp).isAfter(now.clone().subtract(24, 'hours'))
   );
@@ -161,7 +198,7 @@ function Interface() {
           </Typography>
 
           <Grid container spacing={2} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 'auto' }}>
               <Card sx={{ backgroundColor: '#ffebee', borderRadius: 3, boxShadow: 3 }}>
                 <CardContent>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -174,7 +211,7 @@ function Interface() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 'auto' }}>
               <Card sx={{ backgroundColor: '#e3f2fd', borderRadius: 3, boxShadow: 3 }}>
                 <CardContent>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -187,7 +224,7 @@ function Interface() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 'auto' }}>
               <Card sx={{ backgroundColor: airStatus?.color || '#f5f5f5', borderRadius: 3, boxShadow: 3 }}>
                 <CardContent>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -202,7 +239,7 @@ function Interface() {
           </Grid>
 
           <Grid container spacing={2} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 'auto' }}>
               <Card sx={{ backgroundColor: '#fff3e0', borderRadius: 3, boxShadow: 2 }}>
                 <CardContent>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -216,7 +253,7 @@ function Interface() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 'auto' }}>
               <Card sx={{ backgroundColor: '#e8f5e9', borderRadius: 3, boxShadow: 2 }}>
                 <CardContent>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>

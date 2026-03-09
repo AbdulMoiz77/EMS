@@ -26,10 +26,11 @@ const long  gmtOffset_sec = 18000;
 
 void setup()
 {
-    Serial.begin(921600);
+    Serial.begin(115200);
     dht.begin();
     delay(200);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.setAutoReconnect(true);
     Serial.print("Connecting to WiFi");
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print(".");
@@ -59,6 +60,11 @@ void setup()
 
 void loop()
 {
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(500);
+    }
+    
     if(!otaInProgress && Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 300000 || sendDataPrevMillis == 0)){
         sendDataPrevMillis = millis();
         Temperature  = dht.readTemperature();
