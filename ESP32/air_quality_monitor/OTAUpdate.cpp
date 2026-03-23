@@ -1,7 +1,9 @@
 #include "OTAUpdate.h"
 
+bool updatePending = false;
+
 void setupStream() {
-    if (!Firebase.RTDB.beginStream(&fbdoStream, "/Firmware")) {
+    if (!Firebase.RTDB.beginStream(&fbdoStream, "/Firmware/update")) {
         Serial.println("Failed to begin Stream: " + fbdoStream.errorReason());
     }
     Firebase.RTDB.setStreamCallback(&fbdoStream, streamCallback, streamTimeoutCallback);
@@ -10,25 +12,14 @@ void setupStream() {
 void streamCallback(FirebaseStream data) {
     Serial.println("Event received");
 
-    if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean && Firebase.ready()) {
+    if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
         bool updateFlag = data.boolData();
         Serial.print("Update flag: ");
         Serial.println(updateFlag ? "TRUE" : "FALSE");
 
         if (updateFlag) {
-        Serial.println("Update triggered!");
-
-            if(Firebase.ready()){
-                if(Firebase.RTDB.getString(&fbdo, "Firmware/url")){
-                    if(fbdo.dataType() == "string"){
-                        url = fbdo.stringData();
-                        Serial.println("Successful read from" + fbdo.dataPath() + " : " + url + " (" + fbdo.dataType() + ")");
-                        updateFirmware();
-                    }
-                }else{
-                    Serial.println("Failed: " + fbdo.errorReason());
-                }
-            }
+            Serial.println("Update triggered!");
+            updatePending = true;
         }
     }
 }
@@ -41,6 +32,31 @@ void streamTimeoutCallback(bool timeout) {
 
 void updateFirmware() {
     otaInProgress = true;
+    Firebase.RTDB.endStream(&fbdoStream);
+    fbdoStream.clear();
+    Serial.println("Firebase stream terminated to free resources.");
+    delay(3000);
+
+    if (!Firebase.ready()) {
+        Serial.println("Error: Firebase not ready. Aborting OTA.");
+        otaInProgress = false;
+        setupStream();
+        return;
+    }
+
+    if(Firebase.RTDB.getString(&fbdo, "/Firmware/url")){
+        if(fbdo.dataType() == "string"){
+            url = fbdo.stringData();
+            Serial.println("Successful read from" + fbdo.dataPath() + " : " + url + " (" + fbdo.dataType() + ")");            
+        }
+    }else{
+            Serial.println("Failed to read URL: " + fbdo.errorReason());            
+            otaInProgress = false;
+            setupStream();
+            return;
+    }
+
+
     WiFiClientSecure client;
     client.setInsecure();
 
@@ -89,7 +105,7 @@ void updateFirmware() {
                         Firebase.RTDB.setBool(&fbdo, "/Firmware/update", false);
                     }
                     Serial.println("Update Completed. Rebooting.....");
-                    delay(200);
+                    delay(500);
                     ESP.restart();
                 }else{
                     Serial.println("Update not finished");
@@ -116,4 +132,5 @@ void updateFirmware() {
         }
     }
     otaInProgress = false;
+    setupStream();
 }

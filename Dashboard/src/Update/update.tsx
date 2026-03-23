@@ -2,15 +2,15 @@ import { useEffect, useState, useRef, ChangeEvent, DragEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NavLink } from "react-router-dom";
 import { Typography } from '@mui/material';
-import { database } from '../firebase/config';
+import { database, auth } from '../firebase/config';
 import { ref, set, get, onValue, Unsubscribe } from 'firebase/database';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import "./update.css";
 
 function Update(){
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { flag } = (location.state as { flag: boolean }) || { flag: false };
+  const navigate = useNavigate();    
   const hasAlerted = useRef(false);
+  const logOut = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileSelected, setFileSelected] = useState(false);
@@ -18,21 +18,54 @@ function Update(){
   const [uploaded, setUploaded] = useState(false);
   const [deleteShow, setDeleteShow] = useState(true);
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   useEffect(() => {
-    if (!flag && !hasAlerted.current) {
-      alert('Please login first.')
-      hasAlerted.current = true;
-      navigate('/login');
-    }
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsAuthChecking(false);
+      } else {
+        if (!logOut.current) {
+          if (!hasAlerted.current) {
+            alert('Please login first');
+            hasAlerted.current = true;
+            navigate('/login');
+          }
+        }
+      }
+    });
 
     return () => {
+      unsubscribeAuth();
       if (unsubscribeRef.current) {
-        console.log("Cleaning up Firebase listener...");
         unsubscribeRef.current();
       }
     };
-  }, [flag, navigate]);
+  }, [navigate]);
+
+  useEffect(() => {
+    const handleBackButton = () => {  
+      logOut.current = true;    
+      signOut(auth).catch((error) => console.error("Error signing out:", error));
+    };
+
+    window.addEventListener('popstate', handleBackButton);
+
+    return () => {
+      window.removeEventListener('popstate', handleBackButton);
+    };
+  }, []);
+
+  const handleLogoutAndGoHome = async () => {
+    logOut.current = true;
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out: ', error);
+      navigate('/');
+    }
+  };
 
   const isBinFile = (file: File | null) => {
     return file && file.name.toLowerCase().endsWith('.bin');
@@ -150,13 +183,16 @@ function Update(){
     }
   }
 
+  if (isAuthChecking) {
+    return <div style={{ color: 'white', textAlign: 'center', marginTop: '50px' }}>Authenticating...</div>;
+  }
   return (
     <div className="file-wrapper">
-      <NavLink to="/">
-      <button className="home-button">
+      
+      <button className="home-button" onClick={handleLogoutAndGoHome}>
         <img src="/home.png" alt="Home" className="home-icon" />
       </button>
-      </NavLink>
+      
 
       <Typography variant="h4" gutterBottom   sx={{mr: 2, color: "#ebf2f1", fontFamily: "'Poppins', sans-serif", fontWeight: 'bold', fontSize: '2.5rem', letterSpacing: '2px' }}>
           Update Firmware OTA

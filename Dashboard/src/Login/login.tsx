@@ -1,7 +1,7 @@
 import { FormEvent, useState, useRef } from 'react';
 import './login.css';
 import { useNavigate } from 'react-router-dom';
-import { signInAnonymously } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase/config';
 
 function Login() {
@@ -17,24 +17,12 @@ function Login() {
         e.preventDefault();
         if (!idRef.current || !passRef.current) return;
         
-        const id = idRef.current.value;
+        const email = idRef.current.value;
         const pass = passRef.current.value;
 
         try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, pass }),
-            });
-
-            const data = await response.json();
-
-            if (data.result) {
-                await signInAnonymously(auth);
-                navigate("/update", {state: {flag: true}});
-            } else {
-                triggerError();
-            }
+            await signInWithEmailAndPassword(auth, email, pass);
+            navigate("/update");
         } catch (error) {
             console.error("Login Error:", error);
             triggerError();
@@ -61,7 +49,7 @@ function Login() {
                 <form onSubmit={submit}>
                     <h1>Login</h1>
                     <div className={`input-box ${shake ? 'shake' : ''}`}>
-                        <input id="Username" type="text" ref={idRef} placeholder="userID" autoComplete="off" required />
+                        <input id="Username" type="email" ref={idRef} placeholder="userID" autoComplete="off" required />
                         {icons && <i className="user-icon bx bx-user"></i>}
                         {showError && <i className="error error-icon fas fa-exclamation-circle"></i>}
                     </div>

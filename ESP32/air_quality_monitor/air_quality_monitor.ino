@@ -16,6 +16,8 @@ FirebaseData fbdoStream;
 FirebaseAuth auth;
 FirebaseConfig config;
 
+extern bool updatePending;
+
 DHT dht(13, DHT11);
 
 unsigned long int sendDataPrevMillis = 0;
@@ -44,16 +46,14 @@ void setup()
     config.api_key = API_KEY;
     config.database_url = DATABASE_URL;
 
-    if(Firebase.signUp(&config, &auth,"","")){
-        Serial.println("Signed Up");
-        signupOK = true;
-    }else{
-        Serial.println(config.signer.signupError.message.c_str());
-    }
+    auth.user.email = EMAIL;
+    auth.user.password = PASS;
 
     config.token_status_callback = tokenStatusCallback;
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
+
+    signupOK = true;
 
     setupStream();
 }
@@ -63,6 +63,12 @@ void loop()
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print(".");
         delay(500);
+    }
+
+    if (updatePending && !otaInProgress) {
+        updatePending = false; // reseting the flag
+        Serial.println("Executing pending OTA Update...");
+        updateFirmware(); 
     }
     
     if(!otaInProgress && Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 300000 || sendDataPrevMillis == 0)){
@@ -74,6 +80,7 @@ void loop()
 }
 
 void pushData(){
+
     struct tm timeinfo;
     String formattedTime = "";
     if (getLocalTime(&timeinfo)) {
@@ -82,10 +89,14 @@ void pushData(){
         formattedTime = String(time);
     }
     
+    if (formattedTime == ""){
+        Serial.println("Timestamp Failed");
+        return;
+    }
+
     Serial.println("\nTimestamp: " + formattedTime);
     String node = "Sensor/" + formattedTime;
 
-    resendTemperature:
     if(Firebase.ready()){
         if(Firebase.RTDB.setFloat(&fbdo, node + "/Temperature", Temperature)){
             Serial.println();
@@ -94,12 +105,10 @@ void pushData(){
             Serial.println( "(" + fbdo.dataType() + ") " );
         }else{
             Serial.println("Failed: " + fbdo.errorReason());
-            goto resendTemperature;
+            return;
         }
     }
 
-
-    resendHumidity:
     if(Firebase.ready()){
         if(Firebase.RTDB.setFloat(&fbdo, node + "/Humidity", Humidity)){
             Serial.println();
@@ -108,7 +117,7 @@ void pushData(){
             Serial.println( "(" + fbdo.dataType() + ") " );
         }else{
             Serial.println("Failed: " + fbdo.errorReason());
-            goto resendHumidity;
+            return;
         }
     }
 
